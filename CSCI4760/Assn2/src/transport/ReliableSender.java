@@ -1,3 +1,7 @@
+/**
+ *ReliableSender.java
+ * @author Elliott Tanner
+ */
 package transport;
 
 import java.io.BufferedReader;
@@ -32,11 +36,11 @@ public class ReliableSender {
     private static String relayIP = "172.17.152.60";
     private static String localIP = "172.17.152.46";
     private static int runningSequenceNo = 0;
-    private static final int TIMEOUT            = 6000;
+    private static final int TIMEOUT            = 100;
     private DatagramSocket sendingSocket	= null;
     private DatagramSocket ackSocket            = null;
     private boolean debug =false;
-    
+    private int closeFailCount = 0;
     
     // endregion fields
 
@@ -118,7 +122,6 @@ public class ReliableSender {
      *            UDP port number at remote host
      */
     public void connect(InetAddress remoteIP, int remotePort) {
-	System.out.println("ABOUT TO CONNECT");
 	this.sendingSocket.connect(remoteIP, remotePort);
     }
 
@@ -170,13 +173,13 @@ public class ReliableSender {
 
 	DatagramPacket datagram = new DatagramPacket(message.getBuffer(),
 						     message.getBuffer().length);
-	//System.out.println("ABOUT TO SEND");
 	this.sendingSocket.send(datagram);
-	//System.out.println("SENT!");
 	
 	
-	if (!waitForAck()) {
-	    System.out.println("***RESEND!!!!***" + message.getPayload());
+	if (waitForAck()) {
+	    System.out.println("OK!");
+	}else{
+	    System.out.println("***RESEND!!!!***\n" + message.getPayload());
 	    singleSend(payload, seqNo);
 	}
 	
@@ -210,14 +213,21 @@ public class ReliableSender {
 	    msgBuffer.append((char) responseDatagram.getData()[i]);
 	}
 
-	ReliableTransportMessage response = ReliableTransportMessage
-	    .reconstitute(buffer);
+	boolean isOkAck = false;
+	try{
+	    ReliableTransportMessage response = ReliableTransportMessage
+		.reconstitute(buffer);
+	    
+	    boolean isAck = (response.getOpCode() == ReliableTransportMessage.ACK);
+	    boolean sumOk = validateSum(response);
+	    isOkAck = isAck && sumOk;
+	    
+	    System.out.println("\t\tACK RECEIVED: " + response.getSequenceNo());
+	
+	}catch (NullPointerException npe){
+	    return false;
+	}
 	//System.out.println(response.getOpCode());
-	boolean isAck = (response.getOpCode() == ReliableTransportMessage.ACK);
-	boolean sumOk = validateSum(response);
-	boolean isOkAck = isAck && sumOk;
-
-	System.out.println("\t\tACK RECEIVED: " + response.getSequenceNo());
 	
 	return isOkAck;
     }
@@ -237,7 +247,8 @@ public class ReliableSender {
     }
     
     /**
-     * Sends a single packet with opcode END.
+     * Sends a single packet with opcode END. If no ACK received after 20 attemps,
+     * terminate.
      * 
      * @throws IOException
      */
@@ -265,5 +276,14 @@ public class ReliableSender {
 
 	this.sendingSocket.send(datagram);
 
+	
+	if (waitForAck() || (closeFailCount>20) ) {
+	    System.out.println("OK!");
+	}else{
+	    System.out.println("***RESEND CLOSE PACKET***");
+	    closeFailCount++;
+	    close();//try to close again
+	    
+	}
     }
 }

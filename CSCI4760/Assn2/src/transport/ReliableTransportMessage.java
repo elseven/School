@@ -4,6 +4,9 @@
  */
 package transport;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -59,7 +62,6 @@ public class ReliableTransportMessage {
      * Operation code for a negative acknowledgment
      */
     public static final char	NAK			= 78;
-
     /**
      * Maximum length of the text payload carried by this message. Shorter
      * payloads will be right-padded with blanks.
@@ -81,8 +83,10 @@ public class ReliableTransportMessage {
     private String	       		payload		= " ";
 
     private byte[]     			buffer;
-    private int	       			storedChecksum;
 
+    private int	       			storedChecksum;
+    
+    private static PrintWriter          error           = null;
     // endregion fields
 
     /**
@@ -107,7 +111,14 @@ public class ReliableTransportMessage {
      */
     public ReliableTransportMessage(InetAddress srcIP, InetAddress destIP,
 				    int srcPort, int destPort, char opCode, int seqNo, String payload) {
-	
+
+	if(error == null){
+	    try{
+		error = new PrintWriter(new File("msg_error_out.txt"));
+	    }catch (IOException ioe){
+		//do nothing
+	    }
+	}
 	this.srcIP = srcIP;
 	this.destIP = destIP;
 	this.srcPort = srcPort;
@@ -138,8 +149,7 @@ public class ReliableTransportMessage {
      */
     public static ReliableTransportMessage reconstitute(byte[] encodingBytes) {
 	ReliableTransportMessage message = null;
-	// System.out.println("RECONSTITUTING!");
-	// System.out.println("char count: " + encodingBytes.length);
+	
 	try {
 	    char encodingChars[] = new char[encodingBytes.length];
 
@@ -150,12 +160,12 @@ public class ReliableTransportMessage {
 		 */
 
 		encodingChars[byteIndex] = (char) encodingBytes[byteIndex];
-		// System.out.print(encodingChars[byteIndex] + ",");
-	    }
-	    // System.out.println("done!");
+	    }//for (byteIndex...)
+
+
+
 	    String encodingString = new String(encodingChars);
 
-	    // System.out.println(encodingString);
 	    String sourceIPString = encodingString.substring(0, 15).trim();
 	    String sourcePortString = encodingString.substring(15, 20).trim();
 	    String destIPString = encodingString.substring(20, 35).trim();
@@ -194,42 +204,49 @@ public class ReliableTransportMessage {
 	    
 	    
 	    message.storedChecksum = Integer.parseInt(checksumString);
-	    /*
+	    
 	    if (message.getComputedChecksum() != message.storedChecksum) {
-		System.err.println("stored: " + message.storedChecksum);
+		/*
+		  System.err.println("stored: " + message.storedChecksum);
 		System.err
 		    .println("computed: " + message.getComputedChecksum());
+		*/
 		throw new Exception("ERROR: Bad checksum!");
 	    }
-	    */
 	    
-	} catch (UnknownHostException e) {
-	    System.out.println("ERROR: Unknown host: " + e.getMessage());
-	    System.out.println(e.getMessage());
+	    
+	}//try
+	catch (UnknownHostException e) {
+	    error.println("ERROR: Unknown host: " + e.getMessage());
+	    error.println(e.getMessage());
 	    return null;
-	} catch (Exception e1) {
-	    System.out.println("ERROR: Issue reconstituting message");
-	    System.out.println(e1.getMessage());
-	    e1.printStackTrace();
+	}//catch unknown host 
+	catch (Exception e1) {
+	    error.println("ERROR: Issue reconstituting message");
+	    error.println(e1.getMessage());
+	    
 	    return null;
-	}
+	}//catch 
+	//end try-catch
 
 	return message;
     }
 
     /**
+     * Returns the String representation of 'value', left-padded with blanks to 
+     * a total size of 'width' characters.
      * 
-     * 
-     * @param value
-     * @param width
-     * @return
+     * @param value an IP address
+     * @param width width of the resulting char array
+     * @return string representatino of 'value', left-padded with blanks to a 
+     * total size of 'width' characters
      */
     protected static char[] leftPaddedInt(int value, int width)
 	throws IllegalArgumentException {
 	String unpaddedString = Integer.toString(value);
 
 	if (unpaddedString.length() > width) {
-	    System.out.println("VALUE: " + value + "\tWIDTH: " + width);
+	    //System.out.println("VALUE: " + value + "\tWIDTH: " + width);
 	    throw new IllegalArgumentException(
 					       "'value' cannot be represented in 'width' chars.");
 	}
@@ -238,7 +255,7 @@ public class ReliableTransportMessage {
 	for (int i = unpaddedString.length(); i < width; i++) {
 	    paddedString = " " + paddedString;
 	}
-
+	
 	return paddedString.toCharArray();
     }
 

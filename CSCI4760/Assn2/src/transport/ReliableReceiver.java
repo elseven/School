@@ -57,7 +57,9 @@ public class ReliableReceiver {
 
 	
 	try {
-	    
+	    //try to initialize both sendingSocket and ackSocket
+
+	    //create a sending socket with local port DATA_RECEIVE_PORT
 	    this.sendingSocket = new DatagramSocket(DATA_RECEIVE_PORT,InetAddress.getByName(localIP));
 	    this.ackSocket = new DatagramSocket(ACK_SEND_PORT,InetAddress.getByName(localIP));
 	    
@@ -65,7 +67,7 @@ public class ReliableReceiver {
 	    this.ackSocket.connect(InetAddress.getByName(relayIP),RELAY_PORT);
 	
 	} catch (UnknownHostException e) {
-	    System.out.println("ERROR!!!");
+	    error.println("ERROR!!!");
 	    e.printStackTrace();
 	}
 
@@ -78,13 +80,15 @@ public class ReliableReceiver {
      */
     public static void main(String[] args) throws IOException {
 	
-	error = new PrintWriter(new File("error_out.txt"));
+	error = new PrintWriter(new File("rcv_error_out.txt"));
 	
 	ReliableReceiver receiver = new ReliableReceiver();
 	while (true) {
 	    try {
 		if (receiver.receive() == ReliableTransportMessage.END) {
-		    error.println("FOUND END!");
+		    System.out.println("\n**************************************************\nFOUND END!!!");
+		    System.out.println("GOODBYE!");
+		    break;
 		}
 	    } catch (Exception e) {
 		e.printStackTrace();
@@ -101,6 +105,7 @@ public class ReliableReceiver {
      */
     public char receive() throws IOException {
 	byte buffer[] = new byte[1024];
+	char opcode = ReliableTransportMessage.NAK;
 	DatagramPacket datagram = new DatagramPacket(buffer, 1024);
 	
 	this.sendingSocket.receive(datagram);
@@ -125,39 +130,47 @@ public class ReliableReceiver {
 	    msgBuffer.append(nextChar);
 	}
 	
+	try{
+	    ReliableTransportMessage message = ReliableTransportMessage
+		.reconstitute(buffer);
+	    
 	
-	ReliableTransportMessage message = ReliableTransportMessage
-	    .reconstitute(buffer);
 	
+	    boolean messageOk = validateChecksum(message);
 	
+	    //System.out.println(message.getSequenceNo());
 	
-	boolean messageOk = validateChecksum(message);
+	    int expected = (lastSeqNo+1) % 100;
+	    boolean sequenceNoOk = (expected == message.getSequenceNo());
 	
-	//System.out.println(message.getSequenceNo());
-	
-	int expected = (lastSeqNo+1) % 100;
-	boolean sequenceNoOk = (expected == message.getSequenceNo());
-	
-	if(messageOk && sequenceNoOk){
-	    lastSeqNo ++;
-	    lastSeqNo %= 100;//make sure seqNo wraps around from 99 to 0
-	}
+	    if(messageOk && sequenceNoOk){
+		lastSeqNo ++;
+		lastSeqNo %= 100;//make sure seqNo wraps around from 99 to 0
+	    }
 
 	
-	sendAck(messageOk);
+	    sendAck(messageOk);
 	
 	
-	if(messageOk){
-	    if(sequenceNoOk){
-		System.out.print(message.getPayload());
+	    if(messageOk){
+		if(sequenceNoOk){
+		    System.out.print(message.getPayload());
+		}else{
+		    error.println("\n******************************************");
+		    error.println("\t\t\tLast ok sequence no = " + lastSeqNo + "\n\n");
+		}
 	    }else{
-		error.println("\n******************************************");
-		error.println("\t\t\tLast ok sequence no = " + lastSeqNo + "\n\n");
+		error.println(message.getPayload());
 	    }
-	}else{
-	    error.println(message.getPayload());
+	    
+	    opcode = message.getOpCode();
+	    
+	}//try
+	catch (NullPointerException npe){
+	    error.println("NPE! opcode will default to NAK");
+	    
 	}
-	return message.getOpCode();
+	return opcode;
     }
 
     /**
