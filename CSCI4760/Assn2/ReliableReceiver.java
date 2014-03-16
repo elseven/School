@@ -4,11 +4,14 @@
  */
 package transport;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 
 /**
@@ -19,111 +22,212 @@ import java.net.UnknownHostException;
  */
 public class ReliableReceiver {
 
-	// region fields
-	public static final int	DATA_TRANSMIT_PORT	= 2015;
 
-	public static final int	ACK_RECEIVE_PORT	= 2016;
-	public static final int	ACK_SEND_PORT		= 2018;
-	public static final int	DATA_RECEIVE_PORT	= 2017;
-	public static final int	RELAY_PORT			= 2019;
-	public static final int	PAYLOAD_LEN			= 30;
-	private DatagramSocket	sendingSocket		= null;
-	private DatagramSocket	ackSocket			= null;
 
-	// endregion fields
+    // region fields
+    public static final int	DATA_TRANSMIT_PORT	= 2015; //raid-cs
+    public static final int	ACK_RECEIVE_PORT	= 2016; //bootserver
+    public static final int	ACK_SEND_PORT		= 2018; //rellpack
+    public static final int	DATA_RECEIVE_PORT	= 2017; //bootclient
+    public static final int	RELAY_PORT		= 2021; 
+    //public static final int     RELAY_PORT_2            = 56697; //reliable
+    //public static final int     RELAY_PORT_2            = 59381; //semi-reliable 
+    public static final int     RELAY_PORT_2            = 49856; //unreliable
+    public static final int	PAYLOAD_LEN		= 30;
+    
+    public static PrintWriter   error                   = null;
+    private static String       relayIP                 = "172.17.152.60"; 
+    private static String       localIP                 = "172.17.152.46";
+    
+    private DatagramSocket	sendingSocket		= null;
+    private DatagramSocket	ackSocket		= null;
+    private int                 lastSeqNo               = -1;
+    // endregion fields
 
-	/**
-	 * Initialize sending socket and ACK socket. ACK socket will send to relay
-	 * host.
-	 * 
-	 * @throws SocketException
-	 */
-	public ReliableReceiver() throws SocketException {
-		this.sendingSocket = new DatagramSocket(DATA_RECEIVE_PORT);
-		this.ackSocket = new DatagramSocket(ACK_SEND_PORT);
+    
+    
+    /**
+     * Initialize sending socket and ACK socket. ACK socket will send to relay
+     * host.
+     * 
+     * @throws SocketException
+     */
+    public ReliableReceiver() throws SocketException {
 
-		try {
-			this.sendingSocket.connect(InetAddress.getByName("localhost"), //
-					DATA_TRANSMIT_PORT); //
-			this.ackSocket.connect(InetAddress.getByName("localhost"), //
-					ACK_RECEIVE_PORT);
-		} catch (UnknownHostException e) {
-			System.out.println("ERROR!!!");
-			e.printStackTrace();
-		}
 
+	
+	try {
+	    
+	    this.sendingSocket = new DatagramSocket(DATA_RECEIVE_PORT,InetAddress.getByName(localIP));
+	    this.ackSocket = new DatagramSocket(ACK_SEND_PORT,InetAddress.getByName(localIP));
+	    
+	    this.sendingSocket.connect(InetAddress.getByName(relayIP),RELAY_PORT_2);
+	    this.ackSocket.connect(InetAddress.getByName(relayIP),RELAY_PORT);
+	
+	} catch (UnknownHostException e) {
+	    System.out.println("ERROR!!!");
+	    e.printStackTrace();
 	}
 
-	/**
-	 * 
-	 * @param args
-	 * @throws IOException
-	 */
-	public static void main(String[] args) throws IOException {
-		ReliableReceiver receiver = new ReliableReceiver();
-		while (true) {
-			try {
-				if (receiver.receive() == ReliableTransportMessage.END) {
-					System.out.println("FOUND END!");
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-				break;
-			}
+    }
+
+    /**
+     * 
+     * @param args
+     * @throws IOException
+     */
+    public static void main(String[] args) throws IOException {
+	
+	error = new PrintWriter(new File("error_out.txt"));
+	
+	ReliableReceiver receiver = new ReliableReceiver();
+	while (true) {
+	    try {
+		if (receiver.receive() == ReliableTransportMessage.END) {
+		    error.println("FOUND END!");
 		}
+	    } catch (Exception e) {
+		e.printStackTrace();
+		break;
+	    }
+	}
+    }
+
+    /**
+     * Receives packet, sends ACK or NAK, and prints contents to standard out.
+     * 
+     * @return packet opCode
+     * @throws IOException
+     */
+    public char receive() throws IOException {
+	byte buffer[] = new byte[1024];
+	DatagramPacket datagram = new DatagramPacket(buffer, 1024);
+	
+	this.sendingSocket.receive(datagram);
+	/*
+	try{
+	    this.sendingSocket.receive(datagram);
+	    
+
+	    
+	}catch (SocketTimeoutException ste){
+	    if(debug){
+		System.out.println("TIMEOUT!");
+	    }
+	    sendAck(false);//timeout thrown
+	    }*/
+	
+
+	StringBuffer msgBuffer = new StringBuffer(datagram.getLength());
+	
+	for (int i = 0; i < datagram.getLength(); i++) {
+	    char nextChar = new String(datagram.getData(),"US-ASCII").charAt(i);
+	    msgBuffer.append(nextChar);
+	}
+	
+	
+	ReliableTransportMessage message = ReliableTransportMessage
+	    .reconstitute(buffer);
+	
+	
+	
+	boolean messageOk = validateChecksum(message);
+	
+	//System.out.println(message.getSequenceNo());
+	
+	int expected = (lastSeqNo+1) % 100;
+	boolean sequenceNoOk = (expected == message.getSequenceNo());
+	
+	if(messageOk && sequenceNoOk){
+	    lastSeqNo ++;
+	    lastSeqNo %= 100;//make sure seqNo wraps around from 99 to 0
 	}
 
-	/**
-	 * Receives packet, sends ACK or NAK, and prints contents to standard out.
-	 * 
-	 * @return packet opCode
-	 * @throws IOException
-	 */
-	public char receive() throws IOException {
-		byte buffer[] = new byte[1024];
-		DatagramPacket datagram = new DatagramPacket(buffer, 1024);
-		// System.out.println("WAITING TO RECEIVE!");
-
-		this.sendingSocket.receive(datagram);
-		// System.out.println("RECEIVED!");
-		StringBuffer msgBuffer = new StringBuffer(datagram.getLength());
-		
-		for (int i = 0; i < datagram.getLength(); i++) {
-		    char nextChar = new String(datagram.getData(),"US-ASCII").charAt(i);
-		    msgBuffer.append(nextChar);
-		}
-
-		System.out.println("DATA received=\t" + new String(buffer,"US-ASCII"));
-
-		ReliableTransportMessage message = ReliableTransportMessage
-				.reconstitute(buffer);
-
-		sendAck(true);
-		System.out.println(message.getPayload());
-		return message.getOpCode();
+	
+	sendAck(messageOk);
+	
+	
+	if(messageOk){
+	    if(sequenceNoOk){
+		System.out.print(message.getPayload());
+	    }else{
+		error.println("\n******************************************");
+		error.println("\t\t\tLast ok sequence no = " + lastSeqNo + "\n\n");
+	    }
+	}else{
+	    error.println(message.getPayload());
 	}
+	return message.getOpCode();
+    }
 
-	/**
-	 * Sends an ACK or NAK
-	 * 
-	 * @param isOk
-	 *            true when message is acceptable
-	 * @throws IOException
-	 */
-	private void sendAck(boolean isOk) throws IOException {
-		char opcode = ReliableTransportMessage.NAK;
-		if (isOk) {
-			opcode = ReliableTransportMessage.ACK;
-		}
-		ReliableTransportMessage message = new ReliableTransportMessage(
-				this.sendingSocket.getLocalAddress(),
-				this.sendingSocket.getInetAddress(),
-				this.sendingSocket.getLocalPort(),
-				this.sendingSocket.getPort(), opcode, 0, "");
-
-		DatagramPacket datagram = new DatagramPacket(message.getBuffer(),
-				message.getBuffer().length);
-
-		this.sendingSocket.send(datagram);
+    /**
+     * Sends an ACK or NAK
+     * 
+     * @param isOk
+     *            true when message is acceptable
+     * @throws IOException
+     */
+    private void sendAck(boolean isOk) throws IOException {
+	char opcode = ReliableTransportMessage.NAK;
+	if (isOk) {
+	    opcode = ReliableTransportMessage.ACK;
+	    
+	    /*lastSeqNo ++;
+	    if(lastSeqNo==100){
+		lastSeqNo = 0;
+		}*/
+	}else{
+	    //System.out.println("RESENDING!");
 	}
+	
+
+	
+	//this.ackSocket.connect(InetAddress.getByName(relayIP),RELAY_PORT);
+	
+	
+	
+	ReliableTransportMessage message = new ReliableTransportMessage(this.sendingSocket.getLocalAddress(),
+									this.sendingSocket.getLocalAddress(),
+									ACK_SEND_PORT,
+									ACK_RECEIVE_PORT, 
+									opcode, lastSeqNo, "");
+	
+
+
+	DatagramPacket datagram = new DatagramPacket(message.getBuffer(),
+						     message.getBuffer().length);
+
+	
+	this.ackSocket.send(datagram);
+	//this.sendingSocket.send(datagram);
+    }
+
+
+
+    /**
+     * @param message The ReliableTransportMessage to validate.
+     * @return true when the checksum is correct
+     */
+    private boolean validateChecksum(ReliableTransportMessage message){
+	return (message.getComputedChecksum() == message.getStoredChecksum());
+    }
+
+    
+
+    /*
+     * @param message The ReliableTransportMessage to validate.
+     * @return true when the message's sequence number is one greater than the 
+     * last sequence number. (Note 99 wraps around to 0)
+     *
+     */
+    /*    private boolean checkSequenceNo(ReliableTransportMessage message){
+	
+	int expected = lastSeqNo + 1;
+	if(expected==100){
+	    expected = 0;    
+	}
+	return message.getSequenceNo() == expected;
+	}*/
+
+
 }
