@@ -32,7 +32,8 @@ public class ReliableReceiver {
     public static final int	RELAY_PORT		= 2021; 
     //public static final int     RELAY_PORT_2            = 56697; //reliable
     //public static final int     RELAY_PORT_2            = 59381; //semi-reliable 
-    public static final int     RELAY_PORT_2            = 49856; //unreliable
+    //public static final int     RELAY_PORT_2            = 49856; //unreliable
+    public static final int     RELAY_PORT_2            = 36675; //unreliable
     public static final int	PAYLOAD_LEN		= 30;
     
     public static PrintWriter   error                   = null;
@@ -63,7 +64,7 @@ public class ReliableReceiver {
 	    this.sendingSocket = new DatagramSocket(DATA_RECEIVE_PORT,InetAddress.getByName(localIP));
 	    this.ackSocket = new DatagramSocket(ACK_SEND_PORT,InetAddress.getByName(localIP));
 	    
-	    this.sendingSocket.connect(InetAddress.getByName(relayIP),RELAY_PORT_2);
+	    //this.sendingSocket.connect(InetAddress.getByName(relayIP),RELAY_PORT_2);
 	    this.ackSocket.connect(InetAddress.getByName(relayIP),RELAY_PORT);
 	
 	} catch (UnknownHostException e) {
@@ -137,12 +138,17 @@ public class ReliableReceiver {
 	
 	
 	    boolean messageOk = validateChecksum(message);
-	
+	    System.out.println("\t\t\tVALID CHECKSUM = " + messageOk);
+	    
 	    //System.out.println(message.getSequenceNo());
 	
 	    int expected = (lastSeqNo+1) % 100;
+	    
 	    boolean sequenceNoOk = (expected == message.getSequenceNo());
-	
+	    
+	    System.out.println("\t\t\tSEQOK = " + sequenceNoOk);
+	    
+	    //if it's the next sequence, increment the sequence number
 	    if(messageOk && sequenceNoOk){
 		lastSeqNo ++;
 		lastSeqNo %= 100;//make sure seqNo wraps around from 99 to 0
@@ -199,6 +205,7 @@ public class ReliableReceiver {
 	
 	
 	
+	
 	ReliableTransportMessage message = new ReliableTransportMessage(this.sendingSocket.getLocalAddress(),
 									this.sendingSocket.getLocalAddress(),
 									ACK_SEND_PORT,
@@ -226,21 +233,6 @@ public class ReliableReceiver {
     }
 
     
-
-    /*
-     * @param message The ReliableTransportMessage to validate.
-     * @return true when the message's sequence number is one greater than the 
-     * last sequence number. (Note 99 wraps around to 0)
-     *
-     */
-    /*    private boolean checkSequenceNo(ReliableTransportMessage message){
-	
-	int expected = lastSeqNo + 1;
-	if(expected==100){
-	    expected = 0;    
-	}
-	return message.getSequenceNo() == expected;
-	}*/
 
 
 }

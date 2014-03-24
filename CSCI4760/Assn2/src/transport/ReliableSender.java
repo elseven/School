@@ -32,11 +32,12 @@ public class ReliableSender {
     public static final int RELAY_PORT		= 2021;
     //public static final int     RELAY_PORT_2            = 56697; //reliable
     //public static final int     RELAY_PORT_2            = 59381; //semi-reliable 
-    public static final int     RELAY_PORT_2            = 49856; //reliable 
+    //public static final int     RELAY_PORT_2            = 49856; //unreliable 
+    public static final int     RELAY_PORT_2            = 36675; //unreliable 
     private static String relayIP = "172.17.152.60";
     private static String localIP = "172.17.152.46";
     private static int runningSequenceNo = 0;
-    private static final int TIMEOUT            = 100;
+    private static final int TIMEOUT            = 1000;
     private DatagramSocket sendingSocket	= null;
     private DatagramSocket ackSocket            = null;
     private boolean debug =false;
@@ -66,7 +67,7 @@ public class ReliableSender {
 	this.sendingSocket.setSoTimeout(TIMEOUT);
 	this.ackSocket.setSoTimeout(TIMEOUT);
 	this.connect(destIP, RELAY_PORT);
-	this.ackSocket.connect(destIP,RELAY_PORT_2);
+	//this.ackSocket.connect(destIP,RELAY_PORT_2);
 	
 	if(debug){
 	    System.out.println("END NEW SENDER");
@@ -192,8 +193,8 @@ public class ReliableSender {
      * @throws IOException
      */
     private boolean waitForAck() throws IOException {
-	byte buffer[] = new byte[1024];
-	DatagramPacket responseDatagram = new DatagramPacket(buffer, 1024);
+	byte buffer[] = new byte[PAYLOAD_LEN];
+	DatagramPacket responseDatagram = new DatagramPacket(buffer, PAYLOAD_LEN);
 
 	//this.sendingSocket.receive(responseDatagram);
 	
@@ -209,22 +210,61 @@ public class ReliableSender {
 	
 
 	StringBuffer msgBuffer = new StringBuffer(responseDatagram.getLength());
+	System.out.println("\t\t\tWaiting...");
 	for (int i = 0; i < responseDatagram.getLength(); i++) {
 	    msgBuffer.append((char) responseDatagram.getData()[i]);
 	}
-
+	
+	
 	boolean isOkAck = false;
 	try{
+	    System.out.println("\t\t\tTRYING");
+	    
 	    ReliableTransportMessage response = ReliableTransportMessage
 		.reconstitute(buffer);
+
 	    
 	    boolean isAck = (response.getOpCode() == ReliableTransportMessage.ACK);
+
+	      
+	    if(isAck){
+		System.out.println("\t\t\tISACK = YES");
+	    }else{
+		System.out.println("\t\t\tISACK = NO!");
+	    }
+	    
+
+
+
+
 	    boolean sumOk = validateSum(response);
+	    	  	    
+	    if(sumOk){
+		System.out.println("\t\t\tSUMOK = YES");
+	    }else{
+		System.out.println("\t\t\tSUMOK = NO!");
+	    }
+	    
+	    
+	    boolean seqOk = runningSequenceNo==response.getSequenceNo();
+	    
+	    
+
+
+	    if(seqOk){
+		System.out.println("\t\t\tSEQOK = YES");
+	    }else{
+		System.out.println("\t\t\tSEQOK = NO!");
+	    }
+	    
+
 	    isOkAck = isAck && sumOk;
 	    
+	    
 	    System.out.println("\t\tACK RECEIVED: " + response.getSequenceNo());
-	
+	    
 	}catch (NullPointerException npe){
+	    System.out.println("\t\t\tNOPE");
 	    return false;
 	}
 	//System.out.println(response.getOpCode());

@@ -28,6 +28,10 @@ rcv: compile
 test: compile
 	java -cp $(JARS)$(TEST_CP):$(CP) org.junit.runner.JUnitCore transport.ReliableTransportMessageTest
 
+
+sniff:
+	sudo tcpdump host 172.17.152.60 -c 400 and udp -X
+
 clean:
 	-rm $(ALL_CL)
 	-rm $(ALL_TEST_CL)
