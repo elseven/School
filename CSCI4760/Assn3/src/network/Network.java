@@ -1,11 +1,20 @@
+/**
+ * 
+ * 
+ */
 package network;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Hashtable;
 
+/**
+ * 
+ * @author Elliott Tanner
+ * 
+ */
 public class Network {
-
+	// TODO FINISH COMMENTING
 	private Hashtable<String, Host>	knownHosts	= new Hashtable<String, Host>();
 
 	public Network() {
@@ -50,34 +59,21 @@ public class Network {
 		System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 		System.out.println("==========A F T E R=========");
 
-		// TODO: fix this!!!
+		network.printNextHopTables();
 
-		/*
-		 * boolean converged = false;
-		 * 
-		 * while (!converged) { converged = true; // assume complete for (Host
-		 * host : network.knownHosts.values()) { boolean changeDetected =
-		 * network.exchangeTablesForHost(host); converged &= !changeDetected; if
-		 * (changeDetected) { host.recalculate(); } } }
-		 */
 	}
 
 	public void init() {
 
-		/*
-		 * this.initializeNeighbors("A B 3.8");
-		 * this.initializeNeighbors("A C 1.2");
-		 * this.initializeNeighbors("B D 5.1");
-		 * this.initializeNeighbors("C D 4.2");
-		 * this.initializeNeighbors("B E 1.1");
-		 * this.initializeNeighbors("D E 3.2");
-		 * this.initializeNeighbors("E F 4.4");
-		 */
-
-		this.initializeNeighbors("A B 3");
-		this.initializeNeighbors("A C 23");
-		this.initializeNeighbors("B C 2");
-		this.initializeNeighbors("C D 5");
+		// TODO read in file
+		this.initializeNeighbors("A B 3.8");
+		this.initializeNeighbors("A C 1.2");
+		this.initializeNeighbors("B D 5.1");
+		this.initializeNeighbors("C D 4.2");
+		this.initializeNeighbors("B E 1.1");
+		this.initializeNeighbors("D E 3.2");
+		this.initializeNeighbors("E F 4.4");
+		// this.initializeNeighbors("H I 9.9");
 
 		this.informHostsOfNetwork();
 		System.out.println("------Initial Tables------");
@@ -89,9 +85,19 @@ public class Network {
 	private void printAllTables() {
 
 		for (Host host : this.knownHosts.values()) {
+
 			host.printTable();
+
 		}
 
+	}// printAllTables
+
+	private void printNextHopTables() {
+		for (Host host : this.knownHosts.values()) {
+
+			host.printNextHopTable();
+
+		}
 	}
 
 	private boolean exchangeTablesForHost(Host host) {

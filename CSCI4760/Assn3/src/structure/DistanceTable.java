@@ -3,20 +3,36 @@ package structure;
 import java.util.ArrayList;
 import java.util.Hashtable;
 
+import network.Host;
+
+/**
+ * Represents the distance-vector table at each {@link Host}. Each key in the
+ * DistanceTable is an {@link OrderedPair} of destination and neighbor host
+ * names. The value is the distance from the calling {@link Host} to the
+ * <i>destination</i> host via the <i>neighbor</i> host.
+ * 
+ * @author Elliott Tanner
+ * @see OrderedPair
+ */
 public class DistanceTable extends Hashtable<OrderedPair, Double> {
 
 	/**
-	 * 
+	 * The serialVersionUID for hashing.
 	 */
 	private static final long	serialVersionUID	= 1004834155510223051L;
 
-	// private MinimumDistanceTable minDistanceTable = new
-	// MinimumDistanceTable();
-
+	/**
+	 * Default constructor.
+	 */
 	public DistanceTable() {
-		// TODO Auto-generated constructor stub
+		// default
 	}
 
+	/**
+	 * 
+	 * @return all neighboring hosts' names as an {@link ArrayList} of
+	 *         {@link String}s.
+	 */
 	public ArrayList<String> getNeighbors() {
 
 		ArrayList<String> neighbors = new ArrayList<String>();
@@ -26,8 +42,14 @@ public class DistanceTable extends Hashtable<OrderedPair, Double> {
 			}
 		}
 		return neighbors;
-	}
+	}// getNeighbors
 
+	/**
+	 * 
+	 * @param dest
+	 *            the destination host
+	 * @return the length of the shortest (known) path to "dest"
+	 */
 	public double getMinDistanceTo(String dest) {
 		double dist = Double.POSITIVE_INFINITY;
 		for (OrderedPair pair : this.getOrderedPairs()) {
@@ -39,8 +61,34 @@ public class DistanceTable extends Hashtable<OrderedPair, Double> {
 			}
 		}
 		return dist;
-	}
+	}// getMinDistanceTo
 
+	/**
+	 * 
+	 * @param dest
+	 *            the destination Host
+	 * @return the name of the neighboring node that will result in the shortest
+	 *         (known) path to "dest".
+	 */
+	public String getNextHop(String dest) {
+		String hop = null;
+		double dist = Double.POSITIVE_INFINITY;
+		for (OrderedPair pair : this.getOrderedPairs()) {
+			if (pair.getDest().equals(dest)) {
+				if (this.get(pair) < dist) {
+					dist = this.get(pair);
+					hop = pair.getNeighbor();
+				}
+
+			}
+		}
+		return hop;
+	}// getNextHop
+
+	/**
+	 * 
+	 * @return the {@link MinimumDistanceTable} for the calling {@link Host}.
+	 */
 	public MinimumDistanceTable getMinDistaneTable() {
 
 		MinimumDistanceTable minDistanceTable = new MinimumDistanceTable();
@@ -50,8 +98,13 @@ public class DistanceTable extends Hashtable<OrderedPair, Double> {
 		}
 
 		return minDistanceTable;
-	}
+	}// getMinDistanceTable
 
+	/**
+	 * 
+	 * @return all destination Host names as an {@link ArrayList} of
+	 *         {@link String}s.
+	 */
 	public ArrayList<String> getDestinations() {
 
 		ArrayList<String> dests = new ArrayList<String>();
@@ -61,10 +114,15 @@ public class DistanceTable extends Hashtable<OrderedPair, Double> {
 			}
 		}
 		return dests;
-	}
+	}// getDestinations
 
+	/**
+	 * 
+	 * @return the {@link #keySet()} as an {@link ArrayList} of
+	 *         {@link OrderedPair}s.
+	 */
 	public ArrayList<OrderedPair> getOrderedPairs() {
 		return new ArrayList<OrderedPair>(this.keySet());
-	}
+	}// getOrderedPairs
 
-}
+}// DistanceTable.java

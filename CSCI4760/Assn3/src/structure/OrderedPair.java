@@ -1,7 +1,12 @@
 package structure;
 
+/**
+ * 
+ * @author Elliott Tanner
+ * 
+ */
 public class OrderedPair {
-
+	// TODO FINISH COMMENTING
 	private String	dest;
 	private String	neighbor;
 

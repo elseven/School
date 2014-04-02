@@ -7,49 +7,63 @@ import structure.DistanceTable;
 import structure.MinimumDistanceTable;
 import structure.OrderedPair;
 
+/**
+ * Represents a node/host device in a {@link Network}. Each host has a unique
+ * hostName, a list of neighbors, a list of knownHosts, a {@link DistanceTable},
+ * and all neighboring hosts' {@link MinimumDistanceTable}s. The host will
+ * calculate the paths to each knownHost and determine which neighboring host
+ * will result in the shortest path to the final destination. Note that these
+ * calculations are not guaranteed to be accurate if something strange happens
+ * to the connections in the network, as the host has limited knowledge of the
+ * network as a whole.
+ * 
+ * @author Elliott Tanner
+ * 
+ */
 public class Host {
 
-	// private Map<String, Double> distanceTable = new HashMap<String,
-	// Double>();
-	// private ArrayList<String> knownHosts = new ArrayList<String>();
-
+	// TODO FINISH COMMENTING
 	private String									hostName		= "";
 	private ArrayList<String>						neighbors		= new ArrayList<String>();
 	private ArrayList<String>						knownHosts		= new ArrayList<String>();
 	private DistanceTable							distanceTable	= new DistanceTable();
 	private Hashtable<String, MinimumDistanceTable>	neighborTables	= new Hashtable<String, MinimumDistanceTable>();
 
+	/**
+	 * Default constructor
+	 */
 	public Host() {
-		// TODO Auto-generated constructor stub
+		// default
 	}
 
+	/**
+	 * Creates a new Host with hostName set to "name"
+	 * 
+	 * @param name
+	 *            the unique hostName
+	 */
 	public Host(String name) {
 		this.setHostName(name);
 	}
 
 	/**
-	 * @param args
+	 * Returns the name of the neighboring host that provides the shortest path
+	 * to "dest".
+	 * 
+	 * @param dest
+	 *            the name of the destination host
+	 * @return the name of the neighboring host
 	 */
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-
-	}
-
 	public String getNextHop(String dest) {
 
-		String nextHop = this.neighbors.get(0);
-		double minDistance = Double.POSITIVE_INFINITY;
-		for (String neighbor : this.neighbors) {
-			double tempDistance = toDestViaNeighbor(dest, neighbor);
-			if (tempDistance < minDistance) {
-				minDistance = tempDistance;
-				nextHop = neighbor;
-			}
-		}
-
-		return nextHop;
+		return this.distanceTable.getNextHop(dest);
 	}
 
+	/**
+	 * 
+	 * @param neighbor
+	 * @param distance
+	 */
 	public void addNeighbor(String neighbor, double distance) {
 
 		if (!this.neighbors.contains(neighbor)) {
@@ -64,6 +78,12 @@ public class Host {
 
 	}
 
+	/**
+	 * 
+	 * @param dest
+	 * @param neighbor
+	 * @return
+	 */
 	public double toDestViaNeighbor(String dest, String neighbor) {
 
 		double distance = Double.POSITIVE_INFINITY;
@@ -76,18 +96,34 @@ public class Host {
 		return distance;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	public String getHostName() {
 		return hostName;
 	}
 
+	/**
+	 * 
+	 * @param hostName
+	 */
 	public void setHostName(String hostName) {
 		this.hostName = hostName;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	public ArrayList<String> getKnownHosts() {
 		return knownHosts;
 	}
 
+	/**
+	 * 
+	 * @param knownHosts
+	 */
 	public void setKnownHosts(ArrayList<String> knownHosts) {
 		this.knownHosts = knownHosts;
 
@@ -101,27 +137,37 @@ public class Host {
 					if (!via.equals(this.getHostName())) {
 						this.distanceTable.put(new OrderedPair(dest, via),
 								Double.POSITIVE_INFINITY);
-					}
+					}// if(!via...)
 
-				}
+				}// for(via)
 
-			}
+			}// if(!dest...)
 
-		}
-	}
+		}// for(dest)
+	}// setKnownHosts
 
+	/**
+	 * 
+	 * @return
+	 */
 	public boolean recalculate() {
 
-		System.out.println("RECALC FOR " + this.getHostName());
+		// System.out.println("RECALC FOR " + this.getHostName());
 		boolean changeDetected = false;
 		for (String dest : this.knownHosts) {
 			if (dest.equals(this.hostName)) {
 				continue;
 			}
-			// System.out.println("TO " + dest);
-			double oldDistance = this.getMinDistanceTo(dest);
+
 			for (String neighbor : this.neighbors) {
-				// System.out.println("\tVIA " + neighbor);
+				// System.out.print("\tVIA " + neighbor);
+				double oldDistance = Double.POSITIVE_INFINITY;
+				try {
+					oldDistance = this.distanceTable.get(new OrderedPair(dest,
+							neighbor));
+				} catch (NullPointerException npe) {
+					// TODO check
+				}
 				MinimumDistanceTable minNeighborTable = this.neighborTables
 						.get(neighbor);
 				double distToNeighbor = this.distanceTable.get(new OrderedPair(
@@ -130,7 +176,7 @@ public class Host {
 				if (!dest.equals(neighbor)) {
 					newDist += minNeighborTable.get(dest);
 				}
-				// System.err.println("3");
+
 				if (oldDistance > newDist) {
 					this.distanceTable.put(new OrderedPair(dest, neighbor),
 							newDist);
@@ -141,14 +187,28 @@ public class Host {
 		return changeDetected;
 	}// recalculate
 
+	/**
+	 * 
+	 * @param dest
+	 * @return
+	 */
 	public double getMinDistanceTo(String dest) {
 		return this.distanceTable.getMinDistanceTo(dest);
 	}
 
+	/**
+	 * 
+	 */
 	public void clearNeighborTable() {
 		this.neighborTables.clear();
 	}
 
+	/**
+	 * 
+	 * @param neighbor
+	 * @param minNeighborTable
+	 * @return
+	 */
 	public boolean putNeighborTable(String neighbor,
 			MinimumDistanceTable minNeighborTable) {
 
@@ -174,6 +234,62 @@ public class Host {
 		return changeDetected;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
+	public DistanceTable getDistanceTable() {
+		return this.distanceTable;
+	}
+
+	/**
+	 * 
+	 * @param neighbors
+	 */
+	public void setNeighbors(ArrayList<String> neighbors) {
+		this.neighbors = neighbors;
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public ArrayList<String> getNeighbors() {
+
+		return neighbors;
+	}
+
+	/**
+	 * 
+	 */
+	public void printNextHopTable() {
+		System.out.println();
+		System.out
+				.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+		System.out
+				.println("==================================================");
+		System.out.println("TABLE " + this.hostName + ":");
+		System.out.println("DEST\t|\tNEXT HOP\tDIST");
+		System.out.println("-----------------------------------------");
+		for (String dest : this.knownHosts) {
+			if (dest.equals(this.hostName)) {
+				continue;
+			}
+
+			String nextHop = this.getNextHop(dest);
+			double dist = this.getMinDistanceTo(dest);
+			System.out.printf("%s\t|\t%s\t\t%.2f\n", dest, nextHop, dist);
+		}
+		System.out
+				.println("==================================================");
+		System.out
+				.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+		System.out.println();
+	}
+
+	/**
+	 * 
+	 */
 	public void printTable() {
 		System.out.println("***********************");
 		System.out.println("Host " + this.hostName + " table:");
@@ -206,19 +322,4 @@ public class Host {
 
 	}
 
-	public DistanceTable getDistanceTable() {
-		return this.distanceTable;
-	}
-
-	public void setNeighbors(ArrayList<String> neighbors) {
-		this.neighbors = neighbors;
-	}
-
-	public ArrayList<String> getNeighbors() {
-
-		return neighbors;
-	}
-
-	// DistanceTable = public Hashtable<OrderedPair, Double> getDistanceTable()
-	// {
-}
+}// Host.java

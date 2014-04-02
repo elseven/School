@@ -3,7 +3,7 @@ package structure;
 import java.util.Hashtable;
 
 public class MinimumDistanceTable extends Hashtable<String, Double> {
-
+	// TODO FINISH COMMENTING
 	/**
 	 * 
 	 */
