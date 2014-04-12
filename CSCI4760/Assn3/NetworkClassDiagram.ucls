@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<class-diagram version="1.1.5" icons="true" automaticImage="PNG" always-add-relationships="false" generalizations="true" 
-  realizations="true" associations="true" dependencies="false" nesting-relationships="true">  
+<class-diagram version="1.1.5" icons="true" always-add-relationships="false" generalizations="true" realizations="true" 
+  associations="true" dependencies="false" nesting-relationships="true">  
   <class id="1" language="java" name="network.Host" project="Assn3" file="/Assn3/src/network/Host.java" binary="false" 
     corner="BOTTOM_RIGHT">    
     <position height="-1" width="-1" x="908" y="768"/>    
@@ -30,47 +30,55 @@
   </class>  
   <class id="4" language="java" name="structure.OrderedPair" project="Assn3" 
     file="/Assn3/src/structure/OrderedPair.java" binary="false" corner="BOTTOM_RIGHT">    
-    <position height="-1" width="-1" x="554" y="456"/>    
+    <position height="-1" width="-1" x="547" y="453"/>    
     <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" accessors="true" 
       visibility="true">      
       <attributes public="true" package="true" protected="true" private="true" static="true"/>      
       <operations public="true" package="true" protected="true" private="true" static="true"/>    
     </display>  
   </class>  
-  <association id="5">    
-    <bendpoint x="169" y="756"/>    
-    <end type="SOURCE" refId="1" navigable="false">      
-      <attribute id="6" name="neighborTables">        
-        <position height="18" width="94" x="178" y="634"/>      
-      </attribute>      
-      <multiplicity id="7" minimum="0" maximum="2147483647"/>    
-    </end>    
-    <end type="TARGET" refId="3" navigable="true"/>    
-    <display labels="true" multiplicity="true"/>  
-  </association>  
-  <association id="8">    
+  <class id="5" language="java" name="structure.MinimumDistanceTable" project="Assn3" 
+    file="/Assn3/src/structure/MinimumDistanceTable.java" binary="false" corner="BOTTOM_RIGHT">    
+    <position height="-1" width="-1" x="449" y="704"/>    
+    <display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" accessors="true" 
+      visibility="true">      
+      <attributes public="true" package="true" protected="true" private="true" static="true"/>      
+      <operations public="true" package="true" protected="true" private="true" static="true"/>    
+    </display>  
+  </class>  
+  <dependency id="6">    
+    <end type="SOURCE" refId="1"/>    
+    <end type="TARGET" refId="4"/>  
+  </dependency>  
+  <association id="7">    
     <end type="SOURCE" refId="2" navigable="false">      
-      <attribute id="9" name="knownHosts">        
-        <position height="18" width="75" x="680" y="837"/>      
+      <attribute id="8" name="knownHosts">        
+        <position height="18" width="75" x="651" y="836"/>      
       </attribute>      
-      <multiplicity id="10" minimum="0" maximum="2147483647"/>    
+      <multiplicity id="9" minimum="0" maximum="2147483647">        
+        <position height="16" width="23" x="689" y="794"/>      
+      </multiplicity>    
     </end>    
     <end type="TARGET" refId="1" navigable="true"/>    
     <display labels="true" multiplicity="true"/>  
   </association>  
-  <association id="11">    
-    <bendpoint x="760" y="651"/>    
+  <association id="10">    
+    <bendpoint x="690" y="649"/>    
     <bendpoint x="394" y="644"/>    
     <bendpoint x="395" y="546"/>    
     <end type="SOURCE" refId="1" navigable="false">      
-      <attribute id="12" name="distanceTable">        
+      <attribute id="11" name="distanceTable">        
         <position height="18" width="85" x="346" y="523"/>      
       </attribute>      
-      <multiplicity id="13" minimum="0" maximum="1"/>    
+      <multiplicity id="12" minimum="0" maximum="1"/>    
     </end>    
     <end type="TARGET" refId="3" navigable="true"/>    
     <display labels="true" multiplicity="true"/>  
   </association>  
+  <dependency id="13">    
+    <end type="SOURCE" refId="1"/>    
+    <end type="TARGET" refId="5"/>  
+  </dependency>  
   <classifier-display autosize="true" stereotype="true" package="true" initial-value="false" signature="true" 
     accessors="true" visibility="true">    
     <attributes public="true" package="true" protected="true" private="true" static="true"/>    
