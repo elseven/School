@@ -112,13 +112,17 @@ public class DistanceTable extends Hashtable<OrderedPair, Double> {
 			// Only consider OrderedPairs with destination 'dest'
 			if (pair.getDest().equals(dest)) {
 
+				/*
+				 * If the distance for 'pair' is less than 'dist', update 'dist'
+				 * and 'hop'
+				 */
 				if (this.get(pair) < dist) {
 					dist = this.get(pair);
 					hop = pair.getNeighbor();
 				}// if (this.get(pair)...)
 
 			}// if (pair.getDest()...)
-		}
+		}// for (Ordered pair...)
 		return hop;
 	}// getNextHop
 
@@ -129,7 +133,15 @@ public class DistanceTable extends Hashtable<OrderedPair, Double> {
 	public MinimumDistanceTable getMinDistaneTable() {
 
 		MinimumDistanceTable minDistanceTable = new MinimumDistanceTable();
+		/*
+		 * Calculate the minimum distance to each destination and add the
+		 * destination-dist pairs to minDistanceTable
+		 */
 		for (String dest : this.getDestinations()) {
+			/*
+			 * Calculate the minimum distance to each destination and add the
+			 * destination-dist pair to minDistanceTable
+			 */
 			double dist = this.getMinDistanceTo(dest);
 			minDistanceTable.put(dest, dist);
 		}
@@ -145,11 +157,19 @@ public class DistanceTable extends Hashtable<OrderedPair, Double> {
 	public ArrayList<String> getDestinations() {
 
 		ArrayList<String> dests = new ArrayList<String>();
+		/*
+		 * Extract all 'dest' values from the OrderedPairs and add them to the
+		 * ArrayList'dests'
+		 */
 		for (OrderedPair pair : this.getOrderedPairs()) {
+			/*
+			 * If the 'dest' value in 'pair' is not already in the ArrayList
+			 * 'dest', add it.
+			 */
 			if (!dests.contains(pair.getDest())) {
 				dests.add(pair.getDest());
-			}
-		}
+			}// if(!dests...)
+		}// for (OrderedPair pair...)
 		return dests;
 	}// getDestinations
 

@@ -188,6 +188,7 @@ public class Network {
 	/**
 	 * Prints all of the distance tables
 	 */
+	@SuppressWarnings("unused")
 	private void printAllTables() {
 
 		// print all of the distance tables
